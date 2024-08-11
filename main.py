@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 
+# Pydantic's BaseModel
 class Item(BaseModel):
     name: str
     description: str | None = None
@@ -22,6 +23,22 @@ app = FastAPI()
 fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
 
 
+# Request body + path parameters
+@app.post("/items/{item_id}")
+async def update_item(item_id: int, item: Item):
+    return {"item_id": item_id, **item.model_dump()}
+
+
+# Request body + path + query parameters
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item, q: str | None = None):
+    result = {"item_id": item_id, **item.dict()}
+    if q:
+        result.update({"q": q})
+    return result
+
+
+# Request Body
 @app.post("/items/")
 async def create_item(item: Item):
     item_dict = item.model_dump()
@@ -64,7 +81,7 @@ async def read_user_item(item_id: str, needy: str):
     return item
 
 
-# Required + Default value + Optional
+# Required + default value + optional
 @app.get("/items/multiple/{item_id}")
 async def read_user_item(
         item_id: str, needy: str, skip: int = 0, limit: int | None = None
@@ -130,7 +147,7 @@ async def read_users2():
     return ["Bean", "Elfo"]
 
 
-# Declare a path parameter + Working with Python enumerations
+# Declare a path parameter + working with python enumerations
 @app.get("/models/{model_name}")
 async def get_model(model_name: ModelName):
     if model_name is ModelName.alexnet:
