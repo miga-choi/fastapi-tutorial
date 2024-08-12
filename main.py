@@ -1,6 +1,7 @@
 from enum import Enum
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel
+from typing import Union
 
 
 # Pydantic's BaseModel
@@ -21,6 +22,21 @@ class ModelName(str, Enum):
 app = FastAPI()
 
 fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+@app.get("/items/validations")
+async def read_items(
+        q: Union[str, None] = Query(
+            default=None,
+            min_length=3,
+            max_length=50,
+            pattern="^fixedquery$"
+        )
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
 
 
 # Request body + path parameters
