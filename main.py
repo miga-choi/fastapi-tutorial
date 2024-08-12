@@ -1,7 +1,7 @@
 from enum import Enum
 from fastapi import FastAPI, Query
-from pydantic import BaseModel
-from typing import Union
+from pydantic import BaseModel, Required
+from typing import List, Union
 
 
 # Pydantic's BaseModel
@@ -24,10 +24,29 @@ app = FastAPI()
 fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
 
 
+# Query parameter list / multiple values
+@app.get("/items/multiple/validations")
+async def read_items(q: List[str] = Query(
+    default=["foo", "bar"],
+    min_length=3,
+    max_length=50,
+    pattern="^fixedquery$",
+    title="Query string",
+    description="Query string for the items to search in the database that have a good match",
+    alias="item-query",
+    deprecated=True,
+)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Query Parameters and String Validations
 @app.get("/items/validations")
 async def read_items(
         q: Union[str, None] = Query(
-            default=None,
+            default=Required,
             min_length=3,
             max_length=50,
             pattern="^fixedquery$"
