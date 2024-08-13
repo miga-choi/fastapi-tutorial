@@ -1,6 +1,7 @@
 from enum import Enum
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel
+from typing import Annotated, List
 
 
 class Item(BaseModel):
@@ -19,6 +20,164 @@ class ModelName(str, Enum):
 app = FastAPI()
 
 fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+# Exclude from OpenAPI
+@app.get("/items/")
+async def read_items(
+        hidden_query: Annotated[str | None, Query(include_in_schema=False)] = None,
+):
+    if hidden_query:
+        return {"hidden_query": hidden_query}
+    else:
+        return {"hidden_query": "Not found"}
+
+
+# Deprecating parameters
+@app.get("/items/")
+async def read_items(
+        q: Annotated[
+            str | None,
+            Query(
+                alias="item-query",
+                title="Query string",
+                description="Query string for the items to search in the database that have a good match",
+                min_length=3,
+                max_length=50,
+                pattern="^fixedquery$",
+                deprecated=True,
+            ),
+        ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Alias parameters
+# try:
+#   http://127.0.0.1:8000/items/?item-query=foobaritems
+@app.get("/items/")
+async def read_items(q: Annotated[str | None, Query(alias="item-query")] = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Declare more metadata
+@app.get("/items/")
+async def read_items(
+        q: Annotated[
+            str | None,
+            Query(
+                title="Query string",
+                description="Query string for the items to search in the database that have a good match",
+                min_length=3,
+            ),
+        ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Query parameter list / multiple values with defaults
+# try:
+#   http://localhost:8000/items/
+@app.get("/items/")
+async def read_items(q: Annotated[List[str], Query()] = ["foo", "bar"]):
+    query_items = {"q": q}
+    return query_items
+
+
+# Query parameter list / multiple values
+# try:
+#   http://localhost:8000/items/?q=foo&q=bar
+@app.get("/items/")
+async def read_items(q: Annotated[list[str] | None, Query()] = None):
+    query_items = {"q": q}
+    return query_items
+
+
+# Required with None
+@app.get("/items/")
+async def read_items(q: Annotated[str | None, Query(min_length=3)] = ...):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Required with Ellipsis (...)
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)] = ...):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Make it required
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)]):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Default values
+@app.get("/items/")
+async def read_items(q: Annotated[str, Query(min_length=3)] = "fixedquery"):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Add regular expressions
+@app.get("/items/")
+async def read_items(
+        q: Annotated[
+            str | None, Query(min_length=3, max_length=50, pattern="^fixedquery$")
+        ] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Add more validations
+@app.get("/items/")
+async def read_items(
+        q: Annotated[str | None, Query(min_length=3, max_length=50)] = None,
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Alternative (old) Query as the default value
+@app.get("/items/")
+async def read_items(q: str | None = Query(default=None, max_length=50)):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Query Parameters and String Validations
+@app.get("/items/")
+async def read_items(q: Annotated[str | None, Query(max_length=50)] = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
 
 
 # Request body + path + query parameters
