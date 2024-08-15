@@ -1,5 +1,5 @@
 from enum import Enum
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Path, Query
 from pydantic import BaseModel
 from typing import Annotated, List
 
@@ -20,6 +20,64 @@ class ModelName(str, Enum):
 app = FastAPI()
 
 fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+# Number validations: floats, greater than and less than
+@app.get("/items/{item_id}")
+async def read_items(
+        *,
+        item_id: Annotated[int, Path(title="The ID of the item to get", ge=0, le=1000)],
+        q: str,
+        size: Annotated[float, Query(gt=0, lt=10.5)],
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Number validations: greater than and less than or equal
+@app.get("/items/{item_id}")
+async def read_items(
+        item_id: Annotated[int, Path(title="The ID of the item to get", gt=0, le=1000)],
+        q: str,
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Number validations: greater than or equal
+@app.get("/items/{item_id}")
+async def read_items(
+        item_id: Annotated[int, Path(title="The ID of the item to get", ge=1)], q: str
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Order the parameters as you need, tricks
+@app.get("/items/{item_id}")
+async def read_items(*, item_id: int = Path(title="The ID of the item to get"), q: str):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+# Path Parameters and Numeric Validations
+@app.get("/items/{item_id}")
+async def read_items(
+        item_id: Annotated[int, Path(title="The ID of the item to get")],
+        q: Annotated[str | None, Query(alias="item-query")] = None,
+):
+    results = {"item_id": item_id}
+    if q:
+        results.update({"q": q})
+    return results
 
 
 # Exclude from OpenAPI
