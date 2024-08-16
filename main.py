@@ -1,10 +1,17 @@
 from enum import Enum
 from fastapi import Body, FastAPI, Path, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 from typing import Annotated, List
 
 
+# Nested Models
+class Image(BaseModel):
+    url: HttpUrl
+    name: str
+
+
 # Body - Fields
+# Body - Nested Models
 class Item(BaseModel):
     name: str
     description: str | None = Field(
@@ -12,6 +19,16 @@ class Item(BaseModel):
     )
     price: float = Field(gt=0, description="The price must be greater than zero")
     tax: float | None = None
+    tags: list[str] = set()
+    images: list[Image] | None = None
+
+
+# Body - Nested Models
+class Offer(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    items: list[Item]
 
 
 class ModelName(str, Enum):
@@ -30,11 +47,16 @@ app = FastAPI()
 fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
 
 
-# Body - Fields
-@app.put("/items/{item_id}")
-async def update_item(item_id: int, item: Annotated[Item, Body(embed=True)]):
-    results = {"item_id": item_id, "item": item}
-    return results
+# Bodies of arbitrary dict
+@app.post("/index-weights/")
+async def create_index_weights(weights: dict[int, float]):
+    return weights
+
+
+# Bodies of pure lists
+@app.post("/images/multiple/")
+async def create_multiple_images(images: list[Image]):
+    return images
 
 
 # Embed a single body parameter
